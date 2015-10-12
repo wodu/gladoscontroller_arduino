@@ -12,22 +12,23 @@
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <ESP8266WiFi.h>
+#include <WiFiClient.h>
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 
-char ssid[] = "***********";  //  your network SSID (name)
-char pass[] = "***********";       // your network password
+char ssid[] = "glados";  //  your network SSID (name)
+char pass[] = "controller";       // your network password
 
 
 unsigned int localPort = 2362;      // local port to listen for UDP packets
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
-#define SERV_MIN  150
-#define SERV_MAX  600
+#define SERV_MIN  200
+#define SERV_MAX  550
 
-const float serv_scale = 0.3;
-const float serv2deg = (SERVOMAX - SERVOMIN) / 360.0 * serv_scale;
+const float serv_scale = 1;
+const float serv2deg = (SERV_MAX - SERV_MIN) / 360.0 * serv_scale;
 
 #define UDP_PACKET_SIZE 1200
 byte packetBuffer[UDP_PACKET_SIZE];
@@ -36,6 +37,7 @@ WiFiUDP udp;
 
 
 void setup() {
+  delay(1000);
   Serial.begin(115200);
   Serial.println("GlaDos lamp controller");
 
@@ -43,7 +45,7 @@ void setup() {
 
   pwm.begin();
   pwm.setPWMFreq(60);
-
+#if 0
   WiFi.begin(ssid, pass);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -54,7 +56,13 @@ void setup() {
   Serial.println("WiFi connected");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
-  
+#else
+  WiFi.softAP(ssid, pass);
+
+  IPAddress myIP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(myIP);
+#endif
   Serial.println("Starting UDP");
   udp.begin(localPort);
   Serial.print("Local port: ");
@@ -80,9 +88,9 @@ void loop() {
     float pitch = root["gyro"][1];
     float roll = root["gyro"][2];
 
-    float servo1 = SERVOMIN + ( azimuth + 180.0) * serv2deg;
-    float servo2 = SERVOMIN + ( pitch + 180.0) * serv2deg;
-    float servo3 = SERVOMIN + ( roll + 180.0) * serv2deg;
+    float servo1 = SERV_MIN + ( azimuth + 180.0) * serv2deg;
+    float servo2 = SERV_MIN + ( pitch + 180.0) * serv2deg;
+    float servo3 = SERV_MIN + ( roll + 180.0) * serv2deg;
 #if 0
     Serial.println("Gyro");
     Serial.println(azimuth, 3);
