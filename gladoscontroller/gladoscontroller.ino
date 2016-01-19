@@ -24,8 +24,8 @@ unsigned int localPort = 2362;      // local port to listen for UDP packets
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
-#define SERV_MIN  200
-#define SERV_MAX  550
+#define SERV_MIN  300
+#define SERV_MAX  500
 
 const float serv_scale = 1;
 const float serv2deg = (SERV_MAX - SERV_MIN) / 360.0 * serv_scale;
@@ -33,6 +33,8 @@ const float serv2deg = (SERV_MAX - SERV_MIN) / 360.0 * serv_scale;
 #define UDP_PACKET_SIZE 1200
 byte packetBuffer[UDP_PACKET_SIZE];
 WiFiUDP udp;
+unsigned char connected_clients;
+unsigned char connected_once;
 
 
 
@@ -67,6 +69,7 @@ void setup() {
   udp.begin(localPort);
   Serial.print("Local port: ");
   Serial.println(udp.localPort());
+  connected_once = 0;
 
   
 }
@@ -76,7 +79,7 @@ void loop() {
   int packetLength = udp.parsePacket();
 
   if (packetLength) {
-
+    connected_once = 1;
     udp.read(packetBuffer, UDP_PACKET_SIZE);
     packetBuffer[packetLength + 1] = '\0';
     
@@ -101,9 +104,18 @@ void loop() {
     Serial.println(servo2, 3);
     Serial.println(servo3, 3);
 #endif
-    pwm.setPWM(0, 0, servo1);
-    pwm.setPWM(1, 0, servo2);
-    pwm.setPWM(2, 0, servo3);
+    pwm.setPWM(0, 0, servo2 * 0.8);
+    yield();
+    pwm.setPWM(1, 0, servo1);
+    yield();
+    pwm.setPWM(2, 0, servo2 * 1.2);
+    yield();
+    pwm.setPWM(3, 0, servo3);
   }
   delay(10);
+  if (!WiFi.softAPgetStationNum() && connected_once) {
+    pwm.begin();
+    pwm.setPWMFreq(60);
+    connected_once = 0;
+  }
 }
