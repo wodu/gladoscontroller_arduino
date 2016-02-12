@@ -1,121 +1,152 @@
 /*************************************************** 
- Glados lamp servo controller. It gets gyro settings
- from Android phone with jason over UDP on port 2362
- and translates gyro degress to servo pulses.
+ Glados lamp servo controller with XBOX360 wireless
+ controller receiver.
 
- TODO: Control fourth servo with input from sliding bar
- or accelerometer.
+ Based on example sketch for the Xbox Wireless Reciver library
+ developed by Kristian Lauszus
  
- MIT License, Wojciech Dubowik <klute99@gmail.com>
+ GNU General Public License, Wojciech Dubowik <klute99@gmail.com>
  ****************************************************/
 
-#include <Wire.h>
-#include <Adafruit_PWMServoDriver.h>
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
-#include <WiFiUdp.h>
-#include <ArduinoJson.h>
+#include <XBOXRECV.h>
+#include <Servo.h>
 
-char ssid[] = "glados";  //  your network SSID (name)
-char pass[] = "controller";       // your network password
+#define DBG_SER
+#define MIN_MOVEMENT 7500
+
+USB Usb;
+XBOXRECV Xbox(&Usb);
+Servo servo1;
+Servo servo2;
+Servo servo3;
+Servo servo4;
+
+#define SERVO1_MIN 0
+#define SERVO1_INIT 45
+#define SERVO1_MAX 90
+
+#define SERVO2_MIN 0
+#define SERVO2_INIT 45
+#define SERVO2_MAX 90
+
+#define SERVO3_MIN 0
+#define SERVO3_INIT 45
+#define SERVO3_MAX 90
+
+#define SERVO4_MIN 0
+#define SERVO4_INIT 45
+#define SERVO4_MAX 90
 
 
-unsigned int localPort = 2362;      // local port to listen for UDP packets
-
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
-
-#define SERV_MIN  300
-#define SERV_MAX  500
-
-const float serv_scale = 1;
-const float serv2deg = (SERV_MAX - SERV_MIN) / 360.0 * serv_scale;
-
-#define UDP_PACKET_SIZE 1200
-byte packetBuffer[UDP_PACKET_SIZE];
-WiFiUDP udp;
-unsigned char connected_clients;
-unsigned char connected_once;
-
-
-
+int i = 0;
 void setup() {
-  delay(1000);
+  #ifdef DBG_SER
   Serial.begin(115200);
-  Serial.println("GlaDos lamp controller");
+  while (!Serial);
+  #endif
 
-  Wire.begin(0, 2);
-
-  pwm.begin();
-  pwm.setPWMFreq(60);
-#if 0
-  WiFi.begin(ssid, pass);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  if (Usb.Init() == -1) {
+    #ifdef DBG_SER
+    Serial.print(F("\r\nOSC did not start"));
+    #endif
+    while (1); //halt
   }
-  Serial.println("");
+  #ifdef DBG_SER
+  Serial.print(F("\r\nXbox Wireless Receiver Library Started"));
+  #endif
+  servo1.attach(2); //HEAD
   
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-#else
-  WiFi.softAP(ssid, pass);
-
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
+  servo2.attach(3); //NECK
+  
+  servo3.attach(4); //PIVOT
+  
+  servo4.attach(5); //BODY
+#if 0 //TODO: Specify limits first
+  servo1.write(SERVO1_INIT);
+  servo2.write(SERVO2_INIT);
+  servo3.write(SERVO3_INIT);
+  servo4.write(SERVO4_INIT);
 #endif
-  Serial.println("Starting UDP");
-  udp.begin(localPort);
-  Serial.print("Local port: ");
-  Serial.println(udp.localPort());
-  connected_once = 0;
-
-  
 }
 
+
 void loop() {
-  StaticJsonBuffer<200> jsonBuffer;
-  int packetLength = udp.parsePacket();
+  int leftx;
+  int lefty;
+  int rightx;
+  int righty;
+  int servo_pos1;
+  int servo_pos2;
+  int servo_pos3;
+  int servo_pos4;
+  
+  Usb.Task();
+  if (Xbox.XboxReceiverConnected) {
+      if (Xbox.Xbox360Connected[i]) {
+        leftx = Xbox.getAnalogHat(LeftHatX, i);
+        lefty = Xbox.getAnalogHat(LeftHatY, i);
+        rightx = Xbox.getAnalogHat(RightHatX, i);
+        righty = Xbox.getAnalogHat(RightHatY, i);
 
-  if (packetLength) {
-    connected_once = 1;
-    udp.read(packetBuffer, UDP_PACKET_SIZE);
-    packetBuffer[packetLength + 1] = '\0';
-    
-    JsonObject& root = jsonBuffer.parseObject((char*)packetBuffer);
-    if (!root.success()) {
-      Serial.println("parseObject() failed");
+        if (Xbox.getButtonClick(START, i)) {
+          servo1.write(SERVO1_INIT);
+          servo2.write(SERVO2_INIT);
+          servo3.write(SERVO3_INIT);
+          servo4.write(SERVO4_INIT);
+        }
+
+        if (abs(leftx) > MIN_MOVEMENT || abs(lefty) > MIN_MOVEMENT || abs(rightx) > MIN_MOVEMENT || abs(righty) > MIN_MOVEMENT) {
+          if (abs(leftx) > MIN_MOVEMENT) {
+            servo_pos1 = map(leftx,-32768, 32767, SERVO1_MIN, SERVO1_MAX);
+            servo1.write(servo_pos1);
+            #ifdef DBG_SER
+            Serial.print(F("LeftHatX: "));
+            Serial.print(Xbox.getAnalogHat(LeftHatX, i));
+            Serial.print("\t");
+            Serial.print(F("Servo1: "));
+            Serial.print(servo_pos1);
+            Serial.print("\t");
+            #endif
+          }
+          if (abs(lefty) > MIN_MOVEMENT) {
+            servo_pos2 = map(leftx,-32768, 32767, SERVO2_MIN, SERVO2_MAX);
+            servo2.write(servo_pos2);
+            #ifdef DBG_SER
+            Serial.print(F("LeftHatY: "));
+            Serial.print(Xbox.getAnalogHat(LeftHatY, i));
+            Serial.print("\t");
+            Serial.print(F("Servo2: "));
+            Serial.print(servo_pos2);
+            Serial.print("\t");
+            #endif
+          }
+          if (abs(rightx) > MIN_MOVEMENT) {
+            servo_pos3 = map(leftx,-32768, 32767, SERVO3_MIN, SERVO3_MAX);
+            servo3.write(servo_pos3);
+            #ifdef DBG_SER
+            Serial.print(F("RightHatX: "));
+            Serial.print(Xbox.getAnalogHat(RightHatX, i));
+            Serial.print("\t");
+            Serial.print(F("Servo3: "));
+            Serial.print(servo_pos3);
+            Serial.print("\t");
+            #endif
+          }
+          if (abs(righty) > MIN_MOVEMENT) {
+            servo_pos4 = map(leftx,-32768, 32767, SERVO4_MIN, SERVO4_MAX);
+            servo4.write(servo_pos4);
+            #ifdef DBG_SER
+            Serial.print(F("RightHatY: "));
+            Serial.print(Xbox.getAnalogHat(RightHatY, i));
+            Serial.print(F("Servo4: "));
+            Serial.print(servo_pos4);
+            Serial.print("\t");
+            #endif
+          }
+          #ifdef DBG_SER
+          Serial.println();
+          #endif
+      }
     }
-    float azimuth = root["gyro"][0];
-    float pitch = root["gyro"][1];
-    float roll = root["gyro"][2];
-
-    float servo1 = SERV_MIN + ( azimuth + 180.0) * serv2deg;
-    float servo2 = SERV_MIN + ( pitch + 180.0) * serv2deg;
-    float servo3 = SERV_MIN + ( roll + 180.0) * serv2deg;
-#if 0
-    Serial.println("Gyro");
-    Serial.println(azimuth, 3);
-    Serial.println(pitch, 3);
-    Serial.println(roll, 3);
-    Serial.println("Servo");
-    Serial.println(servo1, 3);
-    Serial.println(servo2, 3);
-    Serial.println(servo3, 3);
-#endif
-    pwm.setPWM(0, 0, servo2 * 0.8);
-    yield();
-    pwm.setPWM(1, 0, servo1);
-    yield();
-    pwm.setPWM(2, 0, servo2 * 1.2);
-    yield();
-    pwm.setPWM(3, 0, servo3);
-  }
-  delay(10);
-  if (!WiFi.softAPgetStationNum() && connected_once) {
-    pwm.begin();
-    pwm.setPWMFreq(60);
-    connected_once = 0;
   }
 }
