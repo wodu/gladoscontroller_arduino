@@ -26,16 +26,16 @@ Servo servo4;
 #define SERVO1_MAX 90
 
 #define SERVO2_MIN 0
-#define SERVO2_INIT 45
-#define SERVO2_MAX 90
+#define SERVO2_INIT 90
+#define SERVO2_MAX 180
 
 #define SERVO3_MIN 0
-#define SERVO3_INIT 45
-#define SERVO3_MAX 90
+#define SERVO3_INIT 90
+#define SERVO3_MAX 180
 
 #define SERVO4_MIN 0
-#define SERVO4_INIT 45
-#define SERVO4_MAX 90
+#define SERVO4_INIT 90
+#define SERVO4_MAX 180
 
 
 int i = 0;
@@ -54,13 +54,13 @@ void setup() {
   #ifdef DBG_SER
   Serial.print(F("\r\nXbox Wireless Receiver Library Started"));
   #endif
-  servo1.attach(2); //HEAD
+  servo1.attach(2); //PIVOT
   
-  servo2.attach(3); //NECK
+  servo2.attach(3); //BODY
   
-  servo3.attach(4); //PIVOT
+  servo3.attach(4); //NECK
   
-  servo4.attach(5); //BODY
+  servo4.attach(5); //HEAD
 #if 0 //TODO: Specify limits first
   servo1.write(SERVO1_INIT);
   servo2.write(SERVO2_INIT);
@@ -97,7 +97,7 @@ void loop() {
 
         if (abs(leftx) > MIN_MOVEMENT || abs(lefty) > MIN_MOVEMENT || abs(rightx) > MIN_MOVEMENT || abs(righty) > MIN_MOVEMENT) {
           if (abs(leftx) > MIN_MOVEMENT) {
-            servo_pos1 = map(leftx,-32768, 32767, SERVO1_MIN, SERVO1_MAX);
+            servo_pos1 = map(leftx,-32768, 32767, SERVO1_MAX, SERVO1_MIN );
             servo1.write(servo_pos1);
             #ifdef DBG_SER
             Serial.print(F("LeftHatX: "));
@@ -109,7 +109,7 @@ void loop() {
             #endif
           }
           if (abs(lefty) > MIN_MOVEMENT) {
-            servo_pos2 = map(leftx,-32768, 32767, SERVO2_MIN, SERVO2_MAX);
+            servo_pos2 = map(lefty,-32768, 32767, SERVO2_MIN, SERVO2_MAX);
             servo2.write(servo_pos2);
             #ifdef DBG_SER
             Serial.print(F("LeftHatY: "));
@@ -121,7 +121,7 @@ void loop() {
             #endif
           }
           if (abs(rightx) > MIN_MOVEMENT) {
-            servo_pos3 = map(leftx,-32768, 32767, SERVO3_MIN, SERVO3_MAX);
+            servo_pos3 = map(rightx,-32768, 32767, SERVO3_MIN, SERVO3_MAX);
             servo3.write(servo_pos3);
             #ifdef DBG_SER
             Serial.print(F("RightHatX: "));
@@ -133,7 +133,7 @@ void loop() {
             #endif
           }
           if (abs(righty) > MIN_MOVEMENT) {
-            servo_pos4 = map(leftx,-32768, 32767, SERVO4_MIN, SERVO4_MAX);
+            servo_pos4 = map(righty,-32768, 32767, SERVO4_MIN, SERVO4_MAX);
             servo4.write(servo_pos4);
             #ifdef DBG_SER
             Serial.print(F("RightHatY: "));
